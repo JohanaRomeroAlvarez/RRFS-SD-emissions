@@ -50,7 +50,7 @@ def copy_missing_restart(nwges_dir, hwp_non_avail_hours, hourly_hwpdir):
                     raise FileNotFoundError(f"Source file not found: {source_file_path}")
         except (FileNotFoundError, AttributeError) as e:
             restart_nonavail_hours_test.append(cycle)
-            print(f'Issue with file {matching_file}: {e}')
+            print(f'Issue with file for cycle {cycle}: {e}')
 
     return(restart_avail_hours, restart_nonavail_hours_test)
 
