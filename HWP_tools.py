@@ -36,7 +36,7 @@ def copy_missing_restar(nwges_dir, hwp_non_avail_hours, hourly_hwpdir):
         target_file_name = f"{cycle[:8]}.{'000000' if cycle.endswith('00') else cycle[8:10]+'0000'}.phy_data.nc"
         source_file_path = os.path.join(source_restart_dir, target_file_name)
         target_file_path = os.path.join(hourly_hwpdir, target_file_name)
-
+        print(source_file_path)
         try:
             if os.path.exists(source_file_path):
                 with xr.open_dataset(source_file_path) as ds:
