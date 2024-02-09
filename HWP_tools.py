@@ -23,25 +23,23 @@ def check_restart_files(hourly_hwpdir, fcst_dates):
     print(f'Available restart at: {hwp_avail_hours}, Non-available restart files at: {hwp_non_avail_hours}')
     return(hwp_avail_hours, hwp_non_avail_hours)
 
-def copy_missing_restar(nwges_dir, hwp_non_avail_hours, hourly_hwpdir):
+def copy_missing_restart(nwges_dir, hwp_non_avail_hours, hourly_hwpdir):
     restart_avail_hours = []
     restart_nonavail_hours_test = []
 
     for cycle in hwp_non_avail_hours:
         YYYYMMDDHH = dt.datetime.strptime(cycle, "%Y%m%d%H")
         prev_hr = YYYYMMDDHH - timedelta(hours=1)
-        prev_hr_st = prev_hr.strftime("%Y%m%d%H")
+        prev_hr_str = prev_hr.strftime("%Y%m%d%H")
 
-        source_restart_dir = os.path.join(nwges_dir, prev_hr_st, 'fcst_fv3lam', 'RESTART')
+        source_restart_dir = os.path.join(nwges_dir, prev_hr_str, 'fcst_fv3lam', 'RESTART')
         wildcard_name = '*.phy_data.nc'
-        matching_files = [f for f in os.listdir(source_restart_dir) if fnmatch.fnmatch(f, wildcard_name)]  
-  
-        for matching_file in matching_files:
-            source_file_path = os.path.join(source_restart_dir, matching_file)
-            # Assuming target_file_name needs to be uniquely determined for each matching file
-            target_file_path = os.path.join(hourly_hwpdir, matching_file)
+        try:
+            matching_files = [f for f in os.listdir(source_restart_dir) if fnmatch.fnmatch(f, wildcard_name)]
+            for matching_file in matching_files:
+                source_file_path = os.path.join(source_restart_dir, matching_file)
+                target_file_path = os.path.join(hourly_hwpdir, matching_file)
 
-            try:
                 if os.path.exists(source_file_path):
                     with xr.open_dataset(source_file_path) as ds:
                         ds = ds.rrfs_hwp_ave
@@ -50,12 +48,11 @@ def copy_missing_restar(nwges_dir, hwp_non_avail_hours, hourly_hwpdir):
                         print(f'Restart file copied: {matching_file}')
                 else:
                     raise FileNotFoundError(f"Source file not found: {source_file_path}")
-            except (FileNotFoundError, AttributeError) as e:
-                restart_nonavail_hours_test.append(cycle)
-                print(f'Issue with file {matching_file}: {e}')
+        except (FileNotFoundError, AttributeError) as e:
+            restart_nonavail_hours_test.append(cycle)
+            print(f'Issue with file {matching_file}: {e}')
 
     return(restart_avail_hours, restart_nonavail_hours_test)
-
 
 def process_hwp(fcst_dates, hourly_hwpdir, cols, rows, intp_dir, rave_to_intp):
     hwp_ave = []
