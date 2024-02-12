@@ -61,7 +61,7 @@ def process_hwp(fcst_dates, hourly_hwpdir, cols, rows, intp_dir, rave_to_intp):
     for cycle in fcst_dates:
         print(f'Processing restart file for date: {cycle}')
         file_path = os.path.join(hourly_hwpdir, f"{cycle[:8]}.{cycle[8:10]}0000.phy_data.nc")
-        rave_path = os.path.join(intp_dir, f"{rave_to_intp}{cycle}00_{cycle}00.nc")
+        rave_path = os.path.join(intp_dir, f"{rave_to_intp}{cycle}00_{cycle}59.nc")
 
         # Check if both restart and rave files are available
         if os.path.exists(file_path) and os.path.exists(rave_path):
