@@ -29,7 +29,7 @@ def check_for_intp_rave(intp_dir, fcst_dates, rave_to_intp):
     #   3) there is a link, but it's broken (interpolate a new file)
     #   4) there is a valid link (use it)
     for date in fcst_dates:
-        file_name = f'{rave_to_intp}{date}00_{date}00.nc'
+        file_name = f'{rave_to_intp}{date}00_{date}59.nc'
         file_path = os.path.join(intp_dir, file_name)
         file_exists = os.path.isfile(file_path)
         is_link = os.path.islink(file_path)
@@ -54,7 +54,8 @@ def check_for_raw_rave(RAVE, intp_non_avail_hours, intp_avail_hours):
     rave_avail_hours = []
     rave_nonavail_hours_test = []
     for date in intp_non_avail_hours:
-        wildcard_name = f'*3km*{date}*{date}59590*.nc'
+        #wildcard_name = f'*-3km*{date}*{date}59590*.nc'
+        wildcard_name = f'*3km*{date}*{date}*.nc'
         matching_files = [f for f in os.listdir(RAVE) if fnmatch.fnmatch(f, wildcard_name)]
 
         print(f'Find raw RAVE: {matching_files}')
@@ -161,16 +162,19 @@ def generate_regrider(rave_avail_hours, srcfield, tgtfield, weightfile, inp_file
 #process RAVE available for interpolation
 def interpolate_rave(RAVE, rave_avail, rave_avail_hours, use_dummy_emiss, vars_emis, regridder, 
                     srcgrid, tgtgrid, rave_to_intp, intp_dir, src_latt, tgt_latt, tgt_lont, cols, rows):
-    lista_rave=range(len(rave_avail))
-    for lista_rave, current_hour in zip(lista_rave, rave_avail_hours):
-        file_name= rave_avail[lista_rave]
-        rave_file_path = os.path.join(RAVE, file_name[0])
+    for index, current_hour in enumerate(rave_avail_hours):
+        file_name = rave_avail[index]
+        rave_file_path = os.path.join(RAVE, file_name[0])  
+    #lista_rave=range(len(rave_avail))
+    #for lista_rave, current_hour in zip(lista_rave, rave_avail_hours):
+    #    file_name= rave_avail[lista_rave]
+    #    rave_file_path = os.path.join(RAVE, file_name[0])
         print(f"Processing file: {rave_file_path} for hour: {current_hour}")
         if not use_dummy_emiss and os.path.exists(rave_file_path):
             try:
                 with xr.open_dataset(rave_file_path) as ds_togrid:
                     ds_togrid = ds_togrid[['FRP_MEAN', 'FRE']]
-                    output_file_path = os.path.join(intp_dir, f'{rave_to_intp}{current_hour}00_{current_hour}00.nc')
+                    output_file_path = os.path.join(intp_dir, f'{rave_to_intp}{current_hour}00_{current_hour}59.nc')
                     print('=============before regridding===========','FRP_MEAN')
                     print(np.sum(ds_togrid['FRP_MEAN'],axis=(1,2)))
                     with Dataset(output_file_path, 'w') as fout:

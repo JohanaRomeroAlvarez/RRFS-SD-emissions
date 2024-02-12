@@ -5,38 +5,53 @@ from datetime import datetime
 from netCDF4 import Dataset
 import interp_tools as i_tools
 
+#Compute average FRP from raw RAVE for the previous 24 hours 
 def averaging_FRP(fcst_dates, cols, rows, intp_dir, rave_to_intp, veg_map, tgt_area, beta, fg_to_ug):
+    # There are two situations here.
+    #   1) there is only on fire detection whithin 24 hours so FRP is divided by 2 
+    #   2) There are more than one fire detection so the average FRP is stimated
+    # ebb_smoke is always divided by the number of times a fire is detected within 24 hours window
     base_array = np.zeros((cols*rows))
-    frp_daily = []
-    ebb_smoke_total = base_array
+    frp_daily = base_array
+    ebb_smoke_total = []
+
     ef_map = xr.open_dataset(veg_map)
     emiss_factor = ef_map.emiss_factor.values
     target_area = tgt_area.values
 
+    num_files=0
     for cycle in fcst_dates:
-        file_path = os.path.join(intp_dir, f'{rave_to_intp}{cycle}00_{cycle}00.nc')
+        file_path = os.path.join(intp_dir, f'{rave_to_intp}{cycle}00_{cycle}59.nc')
         
         if os.path.exists(file_path):
             with xr.open_dataset(file_path) as nc:
                 open_fre = nc.FRE[0, :, :].values
                 open_frp = nc.frp_avg_hr[0, :, :].values
-                ebb_hourly = open_fre * emiss_factor * beta * fg_to_ug
-                ebb_to_add = ebb_hourly / target_area
-                ebb_to_add_filtered = xr.where(open_frp > 0, ebb_to_add, 0)
-                ebb_smoke_total += ebb_to_add_filtered.ravel()
                 
-                frp_to_add = xr.where(open_frp > 0, open_frp, np.nan)
-                frp_daily.append(frp_to_add)
+                ebb_hourly = open_fre * emiss_factor * beta * fg_to_ug / target_area
+                ebb_smoke_total.append(np.where(open_frp > 0, ebb_hourly, 0).ravel())
+                
+                frp_daily += np.where(open_frp > 0, open_frp, 0).ravel()
+                
+                num_files += 1
 
-    if frp_daily:
-        frp_avg = np.nanmean(frp_daily, axis=0)
-        frp_avg_reshaped = xr.where(frp_avg > 0, frp_avg, 0)
-        ebb_total = ebb_smoke_total.reshape(cols, rows)
-        ebb_total_reshaped = ebb_total / 86400
+    if num_files > 0:
+        summed_array = np.sum(np.array(ebb_smoke_total), axis=0)
+        # Count the total number of zeros
+        num_zeros = np.sum([arr == 0 for arr in ebb_smoke_total], axis=0)
+        safe_zero_count = np.where(num_zeros == 0, 1, num_zeros) 
+        result_array = summed_array / safe_zero_count 
+        result_array[num_zeros == 0] = summed_array[num_zeros == 0]
+        ebb_total =result_array.reshape(cols, rows)
+        ebb_total_reshaped = ebb_total / 3600
+
+        temp_frp=[frp_daily[i]/2 if safe_zero_count[i] == 1 else frp_daily[i]/safe_zero_count[i] for i in range(len(safe_zero_count))]
+        temp_frp=np.array(temp_frp) 
+        temp_frp[num_zeros == 0] = frp_daily[num_zeros == 0]
+        frp_avg_reshaped = temp_frp.reshape(cols, rows)
     else:
-        zero_array = np.zeros((cols, rows))
-        frp_avg_reshaped = zero_array
-        ebb_total_reshaped = zero_array
+        frp_avg_reshaped =  np.zeros((cols, rows))
+        ebb_total_reshaped =  np.zeros((cols, rows))
 
     return(frp_avg_reshaped, ebb_total_reshaped)
 
@@ -49,7 +64,7 @@ def estimate_fire_duration(intp_avail_hours, intp_dir, fcst_dates, current_day, 
     for date_str in fcst_dates:
         date_file = int(date_str[:10])
         print('Date processing for fire duration',date_file)
-        file_path = os.path.join(intp_dir, f'{rave_to_intp}{date_str}00_{date_str}00.nc')
+        file_path = os.path.join(intp_dir, f'{rave_to_intp}{date_str}00_{date_str}59.nc')
         
         if os.path.exists(file_path):
             with xr.open_dataset(file_path) as open_intp:
@@ -96,3 +111,4 @@ def produce_emiss_file(xarr_hwp, frp_avg_reshaped, intp_dir, current_day, tgt_la
         fout.variables['hwp_davg'][0, :, :] = filtered_hwp
 
     return "Emissions file created successfully"
+

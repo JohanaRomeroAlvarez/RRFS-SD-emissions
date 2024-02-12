@@ -4,6 +4,7 @@ import datetime as dt
 import shutil
 from datetime import timedelta
 import xarray as xr
+import fnmatch
 
 def check_restart_files(hourly_hwpdir, fcst_dates):
     hwp_avail_hours = []
@@ -68,7 +69,6 @@ def process_hwp(fcst_dates, hourly_hwpdir, cols, rows, intp_dir, rave_to_intp):
                 with xr.open_dataset(file_path) as nc:
                     hwp_values = nc.rrfs_hwp_ave.values.ravel().tolist()
                     hwp_ave.append(hwp_values)
-                    print(f'HWP TEST: {nc.rrfs_hwp_ave[0, 895, 637].values}')
             except FileNotFoundError:
                 # Restart file not available for that time period, values are then set to nan
                 pass
@@ -78,7 +78,6 @@ def process_hwp(fcst_dates, hourly_hwpdir, cols, rows, intp_dir, rave_to_intp):
     # Calculate the mean HWP values if available
     if hwp_ave:
         hwp_ave_arr = np.nanmean(hwp_ave, axis=0).reshape(cols, rows)
-        print(f'HWP MEAN: {hwp_ave_arr[895, 637]}')
     else:
         hwp_ave_arr = np.zeros((cols, rows))
 

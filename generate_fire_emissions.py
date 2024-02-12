@@ -32,8 +32,7 @@ def generate_emiss_workflow(staticdir, ravedir, newges_dir, predef_grid):
    cols, rows = (2700, 3950) if predef_grid == 'RRFS_NA_3km' else (1092, 1820) 
    print('PREDEF GRID',predef_grid,'cols,rows',cols,rows)
    veg_map = staticdir+'/veg_map.nc' 
-   #RAVE= '/scratch1/BMC/acomp/Johana/rrfs_v0.4.7_june23/RAVE_G2_2019/hourly'
-   RAVE= '/scratch1/NCEPDEV/stmp4/Partha.Bhattacharjee/RRFSTest_log'
+   RAVE= ravedir
    rave_to_intp = predef_grid+"_intp_"  
    intp_dir = newges_dir
    grid_in = staticdir+'/grid_in.nc'
@@ -65,6 +64,7 @@ def generate_emiss_workflow(staticdir, ravedir, newges_dir, predef_grid):
            print('Restart dates to process',fcst_dates)
            hwp_avail_hours, hwp_non_avail_hours = HWP_tools.check_restart_files(hourly_hwpdir, fcst_dates)
            restart_avail, restart_nonavail_hours_test = HWP_tools.copy_missing_restart(nwges_dir, hwp_non_avail_hours, hourly_hwpdir)
+           start = time.time()
            hwp_ave_arr, xarr_hwp = HWP_tools.process_hwp(fcst_dates, hourly_hwpdir, cols, rows, intp_dir, rave_to_intp)
            frp_avg_reshaped, ebb_tot_reshaped = femmi_tools.averaging_FRP(fcst_dates, cols, rows, intp_dir, rave_to_intp, veg_map, tgt_area, beta, fg_to_ug)
            #Fire end hours processing
