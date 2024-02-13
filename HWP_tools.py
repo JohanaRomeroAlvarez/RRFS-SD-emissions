@@ -40,10 +40,12 @@ def copy_missing_restart(nwges_dir, hwp_non_avail_hours, hourly_hwpdir):
             for matching_file in matching_files:
                 source_file_path = os.path.join(source_restart_dir, matching_file)
                 target_file_path = os.path.join(hourly_hwpdir, matching_file)
-
+                var1, var2 = 'rrfs_hwp_ave', 'totprcp_ave'
+ 
                 if os.path.exists(source_file_path):
                     with xr.open_dataset(source_file_path) as ds:
-                        ds = ds.rrfs_hwp_ave
+                        print(ds.variables)
+                        ds = ds[[var1, var2]]
                         ds.to_netcdf(target_file_path)
                         restart_avail_hours.append(cycle)
                         print(f'Restart file copied: {matching_file}')
@@ -53,34 +55,38 @@ def copy_missing_restart(nwges_dir, hwp_non_avail_hours, hourly_hwpdir):
             restart_nonavail_hours_test.append(cycle)
             print(f'Issue with file for cycle {cycle}: {e}')
 
+        except Exception as e:  # Catch-all for unexpected errors
+            restart_nonavail_hours_test.append(cycle)
+            print(f'Unexpected error for cycle {cycle}: {e}')
+
     return(restart_avail_hours, restart_nonavail_hours_test)
 
 def process_hwp(fcst_dates, hourly_hwpdir, cols, rows, intp_dir, rave_to_intp):
-    hwp_ave = []
-
+    hwp_ave = [] 
+    totprcp = np.zeros((cols*rows))
+    
     for cycle in fcst_dates:
         print(f'Processing restart file for date: {cycle}')
         file_path = os.path.join(hourly_hwpdir, f"{cycle[:8]}.{cycle[8:10]}0000.phy_data.nc")
         rave_path = os.path.join(intp_dir, f"{rave_to_intp}{cycle}00_{cycle}59.nc")
 
-        # Check if both restart and rave files are available
         if os.path.exists(file_path) and os.path.exists(rave_path):
-            try:
-                with xr.open_dataset(file_path) as nc:
-                    hwp_values = nc.rrfs_hwp_ave.values.ravel().tolist()
-                    hwp_ave.append(hwp_values)
-            except FileNotFoundError:
-                # Restart file not available for that time period, values are then set to nan
-                pass
+            with xr.open_dataset(file_path) as nc:
+                hwp_values = nc.rrfs_hwp_ave.values.ravel()  # Keeping as numpy array for efficiency
+                tprcp_values = nc.totprcp_ave.values.ravel()  # Ensure you extract numpy array
+                totprcp += np.where(tprcp_values > 0, tprcp_values, 0)
+                hwp_ave.append(hwp_values) 
         else:
-            print('Restart file non-available, setting HWP to nan')
-
+            print('One or more files non-available for this cycle.')
     # Calculate the mean HWP values if available
     if hwp_ave:
         hwp_ave_arr = np.nanmean(hwp_ave, axis=0).reshape(cols, rows)
+        totprcp_ave_arr = totprcp.reshape(cols, rows)
     else:
         hwp_ave_arr = np.zeros((cols, rows))
+        totprcp_ave_arr = np.zeros((cols, rows))
 
     xarr_hwp = xr.DataArray(hwp_ave_arr)
+    xarr_totprcp  = xr.DataArray(totprcp_ave_arr)
 
-    return(hwp_ave_arr, xarr_hwp)
+    return(hwp_ave_arr, xarr_hwp, totprcp_ave_arr, xarr_totprcp)

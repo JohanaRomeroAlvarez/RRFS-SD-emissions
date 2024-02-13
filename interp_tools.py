@@ -139,13 +139,15 @@ def create_dummy(intp_dir, current_day, tgt_latt, tgt_lont, cols, rows):
         fout.variables['fire_end_hr'][0, :, :] = dummy_file
         Store_by_Level(fout,'hwp_davg','Daily mean Hourly Wildfire Potential', 'none','3D','0.f','1.f')
         fout.variables['hwp_davg'][0, :, :] = dummy_file
+        Store_by_Level(fout,'totprcp_24hrs','Sum of precipitation', 'm', '3D', '0.f','1.f') 
+        fout.variables['totprcp_24hrs'][0, :, :] = dummy_file
 
     return "Emissions dummy file created successfully"
 
 #generate regridder
-def generate_regrider(rave_avail_hours, srcfield, tgtfield, weightfile, inp_files_2use):
+def generate_regrider(rave_avail_hours, srcfield, tgtfield, weightfile, inp_files_2use, intp_avail_hours):
     print('Checking conditions for generating regridder.')
-    use_dummy_emiss = len(rave_avail_hours) == 0 
+    use_dummy_emiss = len(rave_avail_hours) == 0 and len(intp_avail_hours) == 0
     regridder = 0
     if not use_dummy_emiss:
         try:

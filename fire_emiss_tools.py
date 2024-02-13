@@ -88,9 +88,10 @@ def save_fire_dur(cols, rows, te):
     fire_dur = np.array(te).reshape(cols, rows)
     return(fire_dur)
 
-def produce_emiss_file(xarr_hwp, frp_avg_reshaped, intp_dir, current_day, tgt_latt, tgt_lont, ebb_tot_reshaped, fire_age, cols, rows):
+def produce_emiss_file(xarr_hwp, frp_avg_reshaped, totprcp_ave_arr, xarr_totprcp, intp_dir, current_day, tgt_latt, tgt_lont, ebb_tot_reshaped, fire_age, cols, rows):
     # Filter HWP
     filtered_hwp = xarr_hwp.where(frp_avg_reshaped > 0, 0)
+    filtered_prcp = xarr_totprcp.where(frp_avg_reshaped > 0, 0)
 
     # Produce emiss file
     file_path = os.path.join(intp_dir, f'SMOKE_RRFS_data_{current_day}00.nc')
@@ -109,6 +110,8 @@ def produce_emiss_file(xarr_hwp, frp_avg_reshaped, intp_dir, current_day, tgt_la
         fout.variables['fire_end_hr'][0, :, :] = fire_age
         i_tools.Store_by_Level(fout,'hwp_davg','Daily mean Hourly Wildfire Potential', 'none','3D','0.f','1.f')
         fout.variables['hwp_davg'][0, :, :] = filtered_hwp
+        i_tools.Store_by_Level(fout,'totprcp_24hrs','Sum of precipitation', 'm', '3D', '0.f','1.f')
+        fout.variables['totprcp_24hrs'][0, :, :] = filtered_prcp  
 
     return "Emissions file created successfully"
 
