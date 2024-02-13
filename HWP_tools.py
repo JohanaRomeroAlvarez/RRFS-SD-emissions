@@ -44,7 +44,6 @@ def copy_missing_restart(nwges_dir, hwp_non_avail_hours, hourly_hwpdir):
  
                 if os.path.exists(source_file_path):
                     with xr.open_dataset(source_file_path) as ds:
-                        print(ds.variables)
                         ds = ds[[var1, var2]]
                         ds.to_netcdf(target_file_path)
                         restart_avail_hours.append(cycle)
